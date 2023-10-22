@@ -68,7 +68,7 @@ export const logIn = async (req: Request, res: Response) => {
     //! Create Token and store cookie 👇👇👇
 
     res.clearCookie(COOKIE_NAME, {
-      domain: "localhost",
+      domain: "localhost", 
       httpOnly: true,
       signed: true,
       path: "/",
