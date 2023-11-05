@@ -8,7 +8,7 @@ export const validate = (validations: ValidationChain[]) => {
     if (errors.isEmpty()) {
       return next();
     }
-    res.status(400).json({ errorCode: 1, message: errors.array() });
+    return res.status(422).json({ errorCode: 1, message: errors.array() });
   };
 };
 

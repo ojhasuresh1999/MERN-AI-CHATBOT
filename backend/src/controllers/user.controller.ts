@@ -24,7 +24,7 @@ export const signUp = async (req: Request, res: Response) => {
     const existingUser = await UserModel.findOne({ email: email });
     if (existingUser) return res.status(401).send("User Already Exist");
     const hashedPassword = await hash(password, 10);
-    const user = await UserModel.create({
+    const user = new UserModel({
       name,
       email,
       password: hashedPassword,
@@ -41,15 +41,17 @@ export const signUp = async (req: Request, res: Response) => {
     });
 
     const token = createToken(user._id.toString(), user.email, "7d");
+    const expires = new Date();
+    expires.setDate(expires.getDate() + 7);
     res.cookie(COOKIE_NAME, token, {
       path: "/",
       domain: "localhost",
-      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      expires: expires,
       httpOnly: true,
       signed: true,
     });
 
-    res.status(201).json({ errorCode: 0, result: user });
+    res.status(201).json({ errorCode: 0, name: user.name, email: user.email });
   } catch (error) {
     console.log(error);
     res.status(500).send({ errorCode: 1, message: error.message });
@@ -68,24 +70,47 @@ export const logIn = async (req: Request, res: Response) => {
     //! Create Token and store cookie 👇👇👇
 
     res.clearCookie(COOKIE_NAME, {
-      domain: "localhost", 
+      domain: "localhost",
       httpOnly: true,
       signed: true,
       path: "/",
     });
 
     const token = createToken(user._id.toString(), user.email, "7d");
+    const expires = new Date();
+    expires.setDate(expires.getDate() + 7);
     res.cookie(COOKIE_NAME, token, {
       path: "/",
       domain: "localhost",
-      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      expires: expires,
       httpOnly: true,
       signed: true,
     });
-    res
-      .status(201)
-      .json({ errorCode: 0, result: "Log In Successfully 👌👌👌" });
+    res.status(201).json({ errorCode: 0, name: user.name, email: user.email });
   } catch (error) {
     res.status(500).send({ errorCode: 1, message: error.message });
+  }
+};
+
+export const verifyUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    //user token check
+    const user = await UserModel.findById(res.locals.jwtData.id);
+    if (!user) {
+      return res.status(401).send("User not registered OR Token malfunctioned");
+    }
+    if (user._id.toString() !== res.locals.jwtData.id) {
+      return res.status(401).send("Permissions didn't match");
+    }
+    return res
+      .status(200)
+      .json({ message: "OK", name: user.name, email: user.email });
+  } catch (error) {
+    console.log(error);
+    return res.status(200).json({ message: "ERROR", cause: error.message });
   }
 };
